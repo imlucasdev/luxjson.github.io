@@ -1,28 +1,37 @@
 import { useState, useEffect } from 'react';
 
-/**
- * Hook que centraliza estado de tema e idioma.
- * Antes duplicado em Blog.jsx, BlogPost.jsx, luxjson.jsx, NotFound.jsx...
- */
+function readPreference(key, fallback, allowed) {
+  try {
+    const value = window.localStorage.getItem(key);
+    return allowed.includes(value) ? value : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function writePreference(key, value) {
+  try {
+    window.localStorage.setItem(key, value);
+  } catch {
+    return;
+  }
+}
+
 export default function useThemeLang() {
-  const [theme, setTheme] = useState(
-    () => localStorage.getItem('lux-theme') || 'light'
-  );
-  const [language, setLanguage] = useState(
-    () => localStorage.getItem('lux-language') || 'pt'
-  );
+  const [theme, setTheme] = useState(() => readPreference('lux-theme', 'light', ['light', 'dark']));
+  const [language, setLanguage] = useState(() => readPreference('lux-language', 'pt', ['pt', 'en']));
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('lux-theme', theme);
+    writePreference('lux-theme', theme);
   }, [theme]);
 
   useEffect(() => {
-    localStorage.setItem('lux-language', language);
+    writePreference('lux-language', language);
   }, [language]);
 
-  const toggleTheme = () => setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
-  const toggleLanguage = () => setLanguage((prev) => (prev === 'pt' ? 'en' : 'pt'));
+  const toggleTheme = () => setTheme((previous) => (previous === 'light' ? 'dark' : 'light'));
+  const toggleLanguage = () => setLanguage((previous) => (previous === 'pt' ? 'en' : 'pt'));
 
   return { theme, language, toggleTheme, toggleLanguage };
 }

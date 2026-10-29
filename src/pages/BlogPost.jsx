@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import axios from 'axios';
+import { api } from '../services/api';
+import { sanitizeBlogHtml } from '../utils/sanitizeBlogHtml';
+import { safeImageUrl } from '../utils/safeImageUrl';
 import { CalendarDays, Clock, Eye, ArrowLeft } from 'lucide-react';
 
 import Header from '../components/Header';
@@ -19,10 +21,6 @@ import '../assets/styles/blog.css';
 
 const iconBase = { strokeWidth: 2.5, 'aria-hidden': true };
 
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
-});
-
 function calculateReadingTime(content) {
   if (!content) return 1;
   const words = content.trim().split(/\s+/).length;
@@ -36,39 +34,54 @@ export default function BlogPost() {
   const t = createT(language);
   useCursor();
 
-  const [post, setPost] = useState(null);
+  const [postResult, setPostResult] = useState({ slug: null, status: 'loading', post: null });
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const resultIsCurrent = postResult.slug === slug;
+  const loading = !resultIsCurrent || postResult.status === 'loading';
+  const post = resultIsCurrent ? postResult.post : null;
+  const error = resultIsCurrent && postResult.status === 'error';
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isInfoOpen, setIsInfoOpen] = useState(false);
 
   useEffect(() => {
-    const fetchPost = async () => {
-      try {
-        const res = await api.get(`/blog/posts/${slug}`);
-        setPost(res.data.post);
-      } catch (err) {
-        console.error('Erro ao buscar post:', err);
-        setError(t('notFound'));
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchPost();
+    const controller = new AbortController();
+    let active = true;
+
+    api.get(`/blog/posts/${encodeURIComponent(slug)}`, { signal: controller.signal })
+      .then((response) => {
+        if (!active) return;
+        const nextPost = response.data?.post || null;
+        setPostResult({
+          slug,
+          status: nextPost ? 'loaded' : 'error',
+          post: nextPost,
+        });
+      })
+      .catch((requestError) => {
+        if (!active || requestError?.code === 'ERR_CANCELED') return;
+        setPostResult({ slug, status: 'error', post: null });
+      });
+
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    return () => {
+      active = false;
+      controller.abort();
+    };
   }, [slug]);
 
-  // Busca user do GitHub só para o footer
   useEffect(() => {
-    fetch('https://api.github.com/users/luxjson')
-      .then((r) => r.ok ? r.json() : null)
-      .then((data) => data && setUser(data))
+    const controller = new AbortController();
+    fetch('https://api.github.com/users/luxjson', { signal: controller.signal })
+      .then((response) => response.ok ? response.json() : null)
+      .then((data) => {
+        if (data) setUser(data);
+      })
       .catch(() => {});
+    return () => controller.abort();
   }, []);
 
   const formatDate = (dateStr) =>
-    new Date(dateStr).toLocaleDateString(language === 'pt' ? 'pt-BR' : 'en-US', {
+    new Date(dateStr).toLocaleDateString(language === 'pt' ? 'pt-BR' : language === 'es' ? 'es-ES' : 'en-US', {
       day: '2-digit',
       month: 'long',
       year: 'numeric',
@@ -100,7 +113,7 @@ export default function BlogPost() {
               <h1 className="sh-giant-title" style={{ fontSize: 'clamp(60px, 10vw, 120px)' }}>
                 {renderMixedText('404', true)}
               </h1>
-              <p className="sh-hero-sub">{error || t('notFound')}</p>
+              <p className="sh-hero-sub">{t('notFound')}</p>
               <button
                 onClick={() => navigate('/blog')}
                 className="sh-chat-btn"
@@ -155,19 +168,16 @@ export default function BlogPost() {
           {post.cover_image && (
             <div className="sh-blog-post-cover">
               <img
-                src={post.cover_image}
+                src={safeImageUrl(post.cover_image) || undefined}
                 alt={post.title}
                 onError={(e) => { e.target.style.display = 'none'; }}
               />
             </div>
           )}
 
-          {/* ⚠️ Segurança: conteúdo do post renderizado como HTML.
-              Certifique-se de que o backend sanitiza o HTML (ex: DOMPurify)
-              antes de salvar no banco de dados. */}
           <div
             className="sh-blog-post-content"
-            dangerouslySetInnerHTML={{ __html: post.content }}
+            dangerouslySetInnerHTML={{ __html: sanitizeBlogHtml(post.content) }}
           />
 
           <div className="sh-blog-post-footer">

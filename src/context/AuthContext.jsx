@@ -1,36 +1,25 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
-import axios from 'axios';
-
-const AuthContext = createContext();
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) throw new Error('useAuth deve ser usado dentro de AuthProvider');
-  return context;
-};
+import { useState, useEffect } from 'react';
+import { AuthContext } from './auth-context';
+import { api, getStoredToken, storeAuthToken, clearAuthToken } from '../services/api';
 
 const AuthProvider = ({ children }) => {
   const [admin, setAdmin] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [token, setToken] = useState(localStorage.getItem('lux-token'));
-
-  const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
-    headers: { 'Content-Type': 'application/json' },
-  });
-
-  api.interceptors.request.use((config) => {
-    const storedToken = localStorage.getItem('lux-token');
-    if (storedToken) config.headers.Authorization = `Bearer ${storedToken}`;
-    return config;
-  });
+  const [token, setToken] = useState(() => getStoredToken());
+  const [validatedToken, setValidatedToken] = useState(null);
+  const loading = Boolean(token) && validatedToken !== token;
 
   const login = async (username, password) => {
     try {
       const response = await api.post('/auth/login', { username, password });
-      const { token, admin: adminData } = response.data;
-      localStorage.setItem('lux-token', token);
-      setToken(token);
+      const nextToken = response.data?.token;
+      const adminData = response.data?.admin;
+      if (typeof nextToken !== 'string' || !adminData?.id) {
+        return { success: false, message: 'Resposta inválida da API.' };
+      }
+
+      storeAuthToken(nextToken);
+      setValidatedToken(null);
+      setToken(nextToken);
       setAdmin(adminData);
       return { success: true };
     } catch (error) {
@@ -42,31 +31,37 @@ const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
-    localStorage.removeItem('lux-token');
+    clearAuthToken();
     setToken(null);
+    setValidatedToken(null);
     setAdmin(null);
   };
 
-  const checkAuth = async () => {
-    if (!token) {
-      setLoading(false);
-      return;
-    }
-    try {
-      const response = await api.get('/auth/me');
-      setAdmin(response.data.admin);
-    } catch {
-      localStorage.removeItem('lux-token');
-      setToken(null);
-      setAdmin(null);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    checkAuth();
-  }, []);
+    if (!token) return undefined;
+
+    const controller = new AbortController();
+    let active = true;
+
+    api.get('/auth/me', { signal: controller.signal })
+      .then((response) => {
+        if (!active) return;
+        setAdmin(response.data?.admin || null);
+        setValidatedToken(token);
+      })
+      .catch((error) => {
+        if (!active || error?.code === 'ERR_CANCELED') return;
+        clearAuthToken();
+        setToken(null);
+        setValidatedToken(null);
+        setAdmin(null);
+      });
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [token]);
 
   const value = { admin, loading, login, logout, api, isAuthenticated: !!admin };
 

@@ -4,6 +4,9 @@ import wl1 from '../assets/images/wl1.png';
 import wl2 from '../assets/images/wl2.png';
 import wl3 from '../assets/images/wl3.png';
 
+const TARGET_DATE = new Date("September 22, 2027 00:00:00").getTime();
+const LAUNCH_DATE = new Date("September 22, 2028 00:00:00").getTime();
+
 const INTRO_TEXTS = [
     "Since I was a little girl, my house never felt like a home. It was an exhibition of expectations I could never fulfill.",
     "My parents looked at me not as a child, but as a mirror for their own unaccomplished dreams. Every failure of mine was an unpardonable sin.",
@@ -35,18 +38,15 @@ export default function Insomnia() {
     const [dots, setDots] = useState("");
 
     const textSpeed = 0.45;
-    const targetDate = new Date("September 22, 2027 00:00:00").getTime();
-    const launchDate = new Date("September 22, 2028 00:00:00").getTime();
-
     useEffect(() => {
-        const now = new Date().getTime();
-        if (now < targetDate) {
-            setCountdown("COMING 2028");
-            return;
-        }
         const timer = setInterval(() => {
-            const currentTime = new Date().getTime();
-            const distance = launchDate - currentTime;
+            const currentTime = Date.now();
+            if (currentTime < TARGET_DATE) {
+                setCountdown("COMING 2028");
+                return;
+            }
+
+            const distance = LAUNCH_DATE - currentTime;
             if (distance < 0) {
                 setCountdown("LAUNCHING NOW");
                 clearInterval(timer);
@@ -63,11 +63,11 @@ export default function Insomnia() {
 
     useEffect(() => {
         const now = new Date().getTime();
-        const isReached = now >= targetDate;
+        const isReached = now >= TARGET_DATE;
         document.title = isReached ? countdown : "Insomnia - Coming 2028";
         const favicon = document.querySelector("link[rel='icon']");
         if (favicon) favicon.href = isReached ? "/insomnia.ico" : "/insomnia.ico";
-    }, [countdown, targetDate]);
+    }, [countdown]);
 
     useEffect(() => {
         if (state === 4) {
@@ -250,7 +250,7 @@ export default function Insomnia() {
             {state === 7 && (
     <div className="menu-screen" style={{ overflowY: 'auto', padding: '50px 0' }}>
         <h1 className="game-title">INSOMNIA</h1>
-        {new Date().getTime() >= targetDate ? (
+        {new Date().getTime() >= TARGET_DATE ? (
             <div className="post-it">SEPTEMBER 22, 2028</div>
         ) : (
             <div className="post-it">COMING 2028</div>
@@ -275,7 +275,7 @@ export default function Insomnia() {
             <footer className="countdown-footer">
                 <p>© 2026 DEADSMILE</p>
                 <p style={{ color: 'var(--col-blood-pencil)', marginTop: '5px' }}>
-                    {new Date().getTime() >= targetDate ? (
+                    {new Date().getTime() >= TARGET_DATE ? (
                         <span>CHAPTER 1 IS WAITING FOR YOU.<br/>{countdown}</span>
                     ) : (
                         <span>COMING 2028</span>

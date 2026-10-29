@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { api } from '../services/api';
+import { safeImageUrl } from '../utils/safeImageUrl';
 import { Eye, Inbox, Clock } from 'lucide-react';
 import { FileText } from 'lucide-react';
 
@@ -21,10 +22,6 @@ import '../assets/styles/blog.css';
 import '../assets/styles/luxjson.css';
 
 const iconBase = { strokeWidth: 2.5, 'aria-hidden': true };
-
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
-});
 
 export default function Blog() {
   const { theme, language, toggleTheme, toggleLanguage } = useThemeLang();
@@ -145,7 +142,7 @@ export default function Blog() {
                       <div
                         className="sh-project-card-image"
                         style={{
-                          backgroundImage: `url(${post.cover_image || ''})`,
+                          backgroundImage: safeImageUrl(post.cover_image) ? `url("${safeImageUrl(post.cover_image)}")` : 'none',
                           backgroundSize: 'cover',
                           backgroundPosition: 'center',
                           backgroundColor: 'var(--sohub-surface)',

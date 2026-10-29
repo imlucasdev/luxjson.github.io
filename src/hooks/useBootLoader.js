@@ -14,9 +14,12 @@ export default function useBootLoader(dataReady) {
     let timeout;
 
     if (dataReady) {
-      setProgress(100);
+      const progressTimeout = setTimeout(() => setProgress(100), 0);
       timeout = setTimeout(() => setIsLoading(false), 1200);
-      return () => clearTimeout(timeout);
+      return () => {
+        clearTimeout(progressTimeout);
+        clearTimeout(timeout);
+      };
     }
 
     interval = setInterval(() => {

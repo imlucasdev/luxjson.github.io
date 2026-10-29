@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import useCursor from '../hooks/useCursor';
 import useThemeLang from '../hooks/useThemeLang';
 import '../assets/styles/admin.css';
