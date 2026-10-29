@@ -61,8 +61,8 @@ export default function Luxjson() {
     const fetchData = async () => {
       try {
         const [userRes, reposRes] = await Promise.all([
-          fetch('https://api.github.com/users/imlucasdev', { signal: controller.signal }),
-          fetch('https://api.github.com/users/imlucasdev/repos?per_page=100&sort=pushed', { signal: controller.signal }),
+          fetch('https://api.github.com/users/luxjson', { signal: controller.signal }),
+          fetch('https://api.github.com/users/luxjson/repos?per_page=100&sort=pushed', { signal: controller.signal }),
         ]);
 
         if (!userRes.ok || !reposRes.ok) throw new Error('GitHub API error');
@@ -181,7 +181,7 @@ export default function Luxjson() {
                       <div
                         className="sh-project-card-image"
                         style={{
-                          backgroundImage: `url(https://opengraph.githubassets.com/1/imlucasdev/${repo.name})`,
+                          backgroundImage: `url(https://opengraph.githubassets.com/1/luxjson/${repo.name})`,
                           backgroundSize: 'cover',
                           backgroundPosition: 'center',
                         }}
@@ -274,7 +274,7 @@ export default function Luxjson() {
               <h2 className="sh-banner-title">{t('appBannerTitle')}</h2>
               <p className="sh-banner-desc">{t('appBannerDesc')}</p>
               <a
-                href="https://github.com/imlucasdev/luxjson-app/releases/latest"
+                href="https://github.com/luxjson/luxjson-app/releases/latest"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="sh-modal-btn-primary sh-banner-btn"
