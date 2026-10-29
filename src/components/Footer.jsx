@@ -32,7 +32,7 @@ export default function Footer({ t, user, onInfoOpen }) {
             <GithubIcon size={22} />
           </a>
           <a
-            href="https://instagram.com/luxjson"
+            href="https://instagram.com/itslucasdev"
             target="_blank"
             rel="noopener noreferrer"
             className="sh-social-link"

@@ -1,5 +1,5 @@
-import { useEffect, useState, useCallback } from 'react';
-import { useAuth } from '../../context/AuthContext';
+import { useEffect, useState } from 'react';
+import { useAuth } from '../../hooks/useAuth';
 import { motion } from 'framer-motion';
 import { FileText, Eye, BookOpen } from 'lucide-react';
 import useCursor from '../../hooks/useCursor';
@@ -27,22 +27,33 @@ export default function DashboardHome() {
   const [recentPosts, setRecentPosts] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchData = useCallback(async () => {
-    try {
-      const [statsRes, postsRes] = await Promise.all([
-        api.get('/blog/stats'),
-        api.get('/blog/posts?limit=5&publishedOnly=false'),
-      ]);
-      setStats(statsRes.data);
-      setRecentPosts(postsRes.data.posts || []);
-    } catch (error) {
-      console.error('Erro ao carregar dados:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [api]);
+  useEffect(() => {
+    const controller = new AbortController();
+    let active = true;
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+    Promise.all([
+      api.get('/blog/stats', { signal: controller.signal }),
+      api.get('/blog/posts?limit=5&publishedOnly=false', { signal: controller.signal }),
+    ])
+      .then(([statsRes, postsRes]) => {
+        if (!active) return;
+        setStats(statsRes.data);
+        setRecentPosts(Array.isArray(postsRes.data?.posts) ? postsRes.data.posts : []);
+      })
+      .catch((error) => {
+        if (active && error?.code !== 'ERR_CANCELED') {
+          console.error('Erro ao carregar dados:', error);
+        }
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [api]);
 
   if (loading) return <div className="sh-loading">Carregando...</div>;
 

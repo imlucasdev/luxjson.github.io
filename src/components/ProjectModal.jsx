@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { getLanguageColor } from '../utils/languageColors';
 import renderMixedText from '../utils/renderMixedText';
+import { safeExternalUrl } from '../utils/safeExternalUrl';
 
 const iconBase = { strokeWidth: 2.5, 'aria-hidden': true };
 
@@ -26,6 +27,8 @@ const iconBase = { strokeWidth: 2.5, 'aria-hidden': true };
  *  - language
  */
 export default function ProjectModal({ project, onClose, t, language }) {
+  const repositoryUrl = safeExternalUrl(project?.html_url);
+  const homepageUrl = safeExternalUrl(project?.homepage);
   const formatDate = (dateStr) =>
     new Date(dateStr).toLocaleDateString(language === 'pt' ? 'pt-BR' : 'en-US');
 
@@ -123,19 +126,19 @@ export default function ProjectModal({ project, onClose, t, language }) {
                     <Link to="/insomnia" className="sh-modal-btn-primary">
                       <ExternalLink {...iconBase} size={18} /> {t('modalAccess')}
                     </Link>
-                  ) : (
+                  ) : repositoryUrl ? (
                     <a
-                      href={project.html_url}
+                      href={repositoryUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="sh-modal-btn-primary"
                     >
                       <ExternalLink {...iconBase} size={18} /> {t('modalViewGit')}
                     </a>
-                  )}
-                  {project.homepage && (
+                  ) : null}
+                  {homepageUrl && (
                     <a
-                      href={project.homepage}
+                      href={homepageUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="sh-modal-btn-secondary"

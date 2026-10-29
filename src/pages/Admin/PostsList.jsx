@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '../../context/AuthContext';
+import { useState, useEffect } from 'react';
+import { useAuth } from '../../hooks/useAuth';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { Pencil, Trash2, FilePlus, FileText } from 'lucide-react';
@@ -16,21 +16,28 @@ export default function PostsList() {
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(null);
 
-  const fetchPosts = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await api.get('/blog/posts?publishedOnly=false&limit=100');
-      setPosts(res.data.posts || []);
-    } catch (error) {
-      console.error('Erro ao buscar posts:', error);
-      // Substituir alert por estado de erro no futuro
-      alert(error.response?.data?.message || 'Não foi possível carregar os posts.');
-    } finally {
-      setLoading(false);
-    }
-  }, [api]);
+  useEffect(() => {
+    const controller = new AbortController();
+    let active = true;
 
-  useEffect(() => { fetchPosts(); }, [fetchPosts]);
+    api.get('/blog/posts?publishedOnly=false&limit=100', { signal: controller.signal })
+      .then((response) => {
+        if (active) setPosts(Array.isArray(response.data?.posts) ? response.data.posts : []);
+      })
+      .catch((error) => {
+        if (!active || error?.code === 'ERR_CANCELED') return;
+        console.error('Erro ao buscar posts:', error);
+        alert(error.response?.data?.message || 'Não foi possível carregar os posts.');
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [api]);
 
   const handleDelete = async (id) => {
     if (!window.confirm('Tem certeza que deseja excluir este post?')) return;

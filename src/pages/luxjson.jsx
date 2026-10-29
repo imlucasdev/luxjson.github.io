@@ -33,6 +33,13 @@ const iconBase = { strokeWidth: 2.5, 'aria-hidden': true };
 const GITHUB_TARGETS = ['luxjson.github.io', 'analisai-express', 'react', 'light', 'insomnia', 'senai-marycario', 'luxjson-app', 'api', 'timesesi'];
 const GITHUB_BLACKLIST = ['lightoldwebsite'];
 
+function renderHighlightedTranslation(value) {
+  const parts = String(value || '').split(/<span class="sh-h-word">([\s\S]*?)<\/span>/g);
+  return parts.map((part, index) =>
+    index % 2 === 1 ? <span key={index} className="sh-h-word">{part}</span> : part,
+  );
+}
+
 export default function Luxjson() {
   const { theme, language, toggleTheme, toggleLanguage } = useThemeLang();
   const t = createT(language);
@@ -48,33 +55,40 @@ export default function Luxjson() {
   const { isLoading, progress } = useBootLoader(!dataLoading);
 
   useEffect(() => {
+    const controller = new AbortController();
+    let active = true;
+
     const fetchData = async () => {
       try {
         const [userRes, reposRes] = await Promise.all([
-          fetch('https://api.github.com/users/luxjson'),
-          fetch('https://api.github.com/users/luxjson/repos?per_page=100&sort=pushed'),
+          fetch('https://api.github.com/users/luxjson', { signal: controller.signal }),
+          fetch('https://api.github.com/users/luxjson/repos?per_page=100&sort=pushed', { signal: controller.signal }),
         ]);
 
         if (!userRes.ok || !reposRes.ok) throw new Error('GitHub API error');
 
-        const userData = await userRes.json();
-        const reposData = await reposRes.json();
+        const [userData, reposData] = await Promise.all([userRes.json(), reposRes.json()]);
+        if (!active) return;
 
         setUser(userData);
-
-        const filtered = reposData.filter(
-          (repo) =>
-            GITHUB_TARGETS.some((t) => repo.name.toLowerCase().includes(t)) &&
-            !GITHUB_BLACKLIST.some((b) => repo.name.toLowerCase() === b)
-        );
-        setProjects(filtered);
+        setProjects(reposData.filter((repo) =>
+          GITHUB_TARGETS.some((target) => repo.name.toLowerCase().includes(target)) &&
+          !GITHUB_BLACKLIST.some((name) => repo.name.toLowerCase() === name)
+        ));
       } catch (error) {
-        console.error('Erro ao buscar dados do GitHub:', error);
+        if (active && error?.name !== 'AbortError') {
+          console.error('Erro ao buscar dados do GitHub:', error);
+        }
       } finally {
-        setDataLoading(false);
+        if (active) setDataLoading(false);
       }
     };
+
     fetchData();
+    return () => {
+      active = false;
+      controller.abort();
+    };
   }, []);
 
   return (
@@ -107,8 +121,9 @@ export default function Luxjson() {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.5 }}
                 className="sh-hero-sub fix"
-                dangerouslySetInnerHTML={{ __html: t('heroTitle') }}
-              />
+              >
+                {t('heroTitle')}
+              </motion.p>
             </div>
             <div className="sh-hero-render">
               <Atom
@@ -125,10 +140,9 @@ export default function Luxjson() {
         <section id="work" className="sh-work">
           <div className="sh-container">
             <span className="sh-section-tag fix">{t('workTag')}</span>
-            <h2
-              className="sh-description-text"
-              dangerouslySetInnerHTML={{ __html: t('workDesc') }}
-            />
+            <h2 className="sh-description-text">
+              {renderHighlightedTranslation(t('workDesc'))}
+            </h2>
 
             <div className="sh-projects-grid">
               {dataLoading ? (

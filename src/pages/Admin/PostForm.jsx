@@ -1,6 +1,6 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../hooks/useAuth';
 import { motion } from 'framer-motion';
 import { Save, X } from 'lucide-react';
 import useCursor from '../../hooks/useCursor';
@@ -24,33 +24,48 @@ export default function PostForm() {
   const isEditing = !!id;
 
   const [saving, setSaving] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loadedPostId, setLoadedPostId] = useState(null);
   const [formData, setFormData] = useState(INITIAL_FORM);
   const [error, setError] = useState('');
-
-  const loadPost = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await api.get(`/blog/posts/id/${id}`);
-      const post = res.data.post;
-      setFormData({
-        title: post.title || '',
-        content: post.content || '',
-        excerpt: post.excerpt || '',
-        cover_image: post.cover_image || '',
-        published: post.published ?? true,
-      });
-    } catch (err) {
-      console.error('Erro ao carregar post:', err);
-      setError('Não foi possível carregar o post para edição.');
-    } finally {
-      setLoading(false);
-    }
-  }, [api, id]);
+  const loading = Boolean(id) && loadedPostId !== id;
 
   useEffect(() => {
-    if (isEditing) loadPost();
-  }, [isEditing, loadPost]);
+    if (!id) return undefined;
+
+    const controller = new AbortController();
+    let active = true;
+
+    api.get(`/blog/posts/id/${encodeURIComponent(id)}`, { signal: controller.signal })
+      .then((response) => {
+        if (!active) return;
+        const post = response.data?.post;
+        if (!post) {
+          setError('Não foi possível carregar o post para edição.');
+          return;
+        }
+        setFormData({
+          title: post.title || '',
+          content: post.content || '',
+          excerpt: post.excerpt || '',
+          cover_image: post.cover_image || '',
+          published: post.published ?? true,
+        });
+        setError('');
+      })
+      .catch((requestError) => {
+        if (!active || requestError?.code === 'ERR_CANCELED') return;
+        console.error('Erro ao carregar post:', requestError);
+        setError('Não foi possível carregar o post para edição.');
+      })
+      .finally(() => {
+        if (active) setLoadedPostId(id);
+      });
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [api, id]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;

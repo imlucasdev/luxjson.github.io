@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ArrowRight, RefreshCw, Mail } from 'lucide-react';
+import { X, ArrowRight, RefreshCw } from 'lucide-react';
 import emailjs from '@emailjs/browser';
 
 const iconBase = { strokeWidth: 2.5, 'aria-hidden': true };
@@ -19,7 +19,7 @@ const EMAILJS_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || '-7mi-fOFqFgasG8q
  *  - isOpen / onClose
  *  - t / language
  */
-export default function ContactModal({ isOpen, onClose, t, language }) {
+export default function ContactModal({ isOpen, onClose, t }) {
   const form = useRef();
   const [status, setStatus] = useState('');
 
