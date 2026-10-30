@@ -36,7 +36,7 @@ const AuthProvider = ({ children }) => {
       (error) => {
         const status = error.response?.status;
         const requestUrl = String(error.config?.url || '');
-        const isLoginRequest = /\\/auth\\/login(?:[?#]|$)/.test(requestUrl);
+        const isLoginRequest = /\/auth\/login(?:[?#]|$)/.test(requestUrl);
 
         if ([401, 403].includes(status) && !isLoginRequest) {
           clearAuthToken();
