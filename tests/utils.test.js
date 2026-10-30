@@ -4,6 +4,11 @@ import { resolveApiBaseUrl, shouldAttachAuthToken } from '../src/services/apiCon
 import { safeExternalUrl } from '../src/utils/safeExternalUrl.js';
 import { safeImageUrl } from '../src/utils/safeImageUrl.js';
 import { translations } from '../src/utils/translations.js';
+import {
+  clearAuthToken,
+  getStoredToken,
+  storeAuthToken,
+} from '../src/services/authTokenStorage.js';
 
 const productionApi = 'https://api.luxjson.is-a.dev/api';
 
@@ -51,4 +56,51 @@ test('cover images reject protocol-relative, javascript and remote HTTP URLs', (
 
 test('all supported languages expose the same translation keys', () => {
   assert.deepEqual(Object.keys(translations.pt).sort(), Object.keys(translations.en).sort());
+});
+
+test('admin token stays available in memory when localStorage writes fail', () => {
+  const originalWindow = globalThis.window;
+  const storage = {
+    getItem: () => null,
+    setItem: () => { throw new Error('storage quota exceeded'); },
+    removeItem: () => {},
+  };
+
+  try {
+    globalThis.window = { localStorage: storage };
+    clearAuthToken();
+    storeAuthToken('session-token');
+    assert.equal(getStoredToken(), 'session-token');
+    clearAuthToken();
+    assert.equal(getStoredToken(), null);
+  } finally {
+    clearAuthToken();
+    if (originalWindow === undefined) delete globalThis.window;
+    else globalThis.window = originalWindow;
+  }
+});
+
+test('stored admin token is refreshed from localStorage when available', () => {
+  const originalWindow = globalThis.window;
+  let stored = 'persisted-token';
+
+  try {
+    globalThis.window = {
+      localStorage: {
+        getItem: () => stored,
+        setItem: (_key, value) => { stored = value; },
+        removeItem: () => { stored = null; },
+      },
+    };
+    clearAuthToken();
+    assert.equal(getStoredToken(), 'persisted-token');
+    storeAuthToken('rotated-token');
+    assert.equal(getStoredToken(), 'rotated-token');
+    clearAuthToken();
+    assert.equal(getStoredToken(), null);
+  } finally {
+    clearAuthToken();
+    if (originalWindow === undefined) delete globalThis.window;
+    else globalThis.window = originalWindow;
+  }
 });
