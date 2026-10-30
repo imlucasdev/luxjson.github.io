@@ -15,7 +15,7 @@ export function resolveApiBaseUrl(configuredValue, isProduction) {
   }
 
   if (url.username || url.password || url.search || url.hash) return fallback;
-  if (url.pathname.replace(/\\/+$/, '') !== '/api') return fallback;
+  if (url.pathname.replace(/\/+$/, '') !== '/api') return fallback;
 
   if (isProduction) {
     if (url.origin !== 'https://api.luxjson.is-a.dev') return fallback;
@@ -34,9 +34,9 @@ export function shouldAttachAuthToken(requestUrl, baseUrl) {
 
   try {
     const base = new URL(baseUrl);
-    const basePath = base.pathname.replace(/\\/+$/, '');
-    const isAbsoluteOrProtocolRelative = /^(?:[a-z][a-z\\d+.-]*:)?\\/\\//i.test(request);
-    const normalizedRequest = isAbsoluteOrProtocolRelative ? request : request.replace(/^\\/+/, '');
+    const basePath = base.pathname.replace(/\/+$/, '');
+    const isAbsoluteOrProtocolRelative = /^(?:[a-z][a-z\d+.-]*:)?\/\//i.test(request);
+    const normalizedRequest = isAbsoluteOrProtocolRelative ? request : request.replace(/^\/+/, '');
     const target = new URL(normalizedRequest, `${base.origin}${basePath}/`);
 
     if (target.origin !== base.origin) return false;
