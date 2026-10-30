@@ -62,12 +62,25 @@ export default function Insomnia() {
     }, []);
 
     useEffect(() => {
-        const now = new Date().getTime();
+        const now = Date.now();
         const isReached = now >= TARGET_DATE;
         document.title = isReached ? countdown : "Insomnia - Coming 2028";
         const favicon = document.querySelector("link[rel='icon']");
-        if (favicon) favicon.href = isReached ? "/insomnia.ico" : "/insomnia.ico";
+        if (favicon) favicon.href = "/Insomnia.ico";
     }, [countdown]);
+
+    useEffect(() => {
+        const originalTitle = document.title;
+        const favicon = document.querySelector("link[rel='icon']");
+        const originalFaviconHref = favicon?.getAttribute('href') ?? null;
+
+        return () => {
+            document.title = originalTitle;
+            if (!favicon) return;
+            if (originalFaviconHref) favicon.setAttribute('href', originalFaviconHref);
+            else favicon.removeAttribute('href');
+        };
+    }, []);
 
     useEffect(() => {
         if (state === 4) {
@@ -157,7 +170,7 @@ export default function Insomnia() {
 
     return (
     <>
-        <div class="mobile-banner">
+        <div className="mobile-banner">
             Access via computer for the best experience.
         </div>
         <div className={`game-container ${isShake ? 'shake' : ''}`}>

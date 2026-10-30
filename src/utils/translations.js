@@ -23,6 +23,7 @@ export const translations = {
     blogHeroTitle: 'BLOG',
     blogHeroSub: 'FIQUE POR DENTRO DAS NOVIDADES E ARTIGOS',
     noPosts: 'Nenhum post publicado ainda.',
+    errorLoadingPosts: 'Não foi possível carregar as publicações. Tente novamente.',
     readMore: 'Ler mais',
 
     // BlogPost
@@ -102,6 +103,7 @@ export const translations = {
     blogHeroTitle: 'BLOG',
     blogHeroSub: 'STAY UPDATED WITH NEWS AND ARTICLES',
     noPosts: 'No posts published yet.',
+    errorLoadingPosts: 'Could not load posts. Please try again.',
     readMore: 'Read more',
 
     // BlogPost

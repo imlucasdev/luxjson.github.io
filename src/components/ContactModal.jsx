@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ArrowRight, RefreshCw } from 'lucide-react';
 import emailjs from '@emailjs/browser';
@@ -21,29 +21,44 @@ const EMAILJS_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || '-7mi-fOFqFgasG8q
  */
 export default function ContactModal({ isOpen, onClose, t }) {
   const form = useRef();
-  const [status, setStatus] = useState('');
+  const [statusKey, setStatusKey] = useState('');
+  const timeoutRef = useRef(null);
+  const sendingRef = useRef(false);
+
+  useEffect(() => () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+  }, []);
 
   const sendEmail = (e) => {
     e.preventDefault();
-    setStatus(t('chatSending'));
+    if (sendingRef.current || !form.current) return;
+    sendingRef.current = true;
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    setStatusKey('chatSending');
 
     emailjs
       .sendForm(EMAILJS_SERVICE, EMAILJS_TEMPLATE, form.current, EMAILJS_KEY)
       .then(() => {
-        setStatus(t('chatSent'));
-        setTimeout(() => {
+        sendingRef.current = false;
+        setStatusKey('chatSent');
+        timeoutRef.current = setTimeout(() => {
           onClose();
-          setStatus('');
+          setStatusKey('');
           form.current?.reset();
+          timeoutRef.current = null;
         }, 2000);
       })
       .catch(() => {
-        setStatus(t('chatError'));
-        setTimeout(() => setStatus(''), 3000);
+        sendingRef.current = false;
+        setStatusKey('chatError');
+        timeoutRef.current = setTimeout(() => {
+          setStatusKey('');
+          timeoutRef.current = null;
+        }, 3000);
       });
   };
 
-  const isSending = status === t('chatSending');
+  const isBusy = statusKey === 'chatSending' || statusKey === 'chatSent';
 
   return (
     <AnimatePresence>
@@ -120,10 +135,10 @@ export default function ContactModal({ isOpen, onClose, t }) {
               </div>
 
               <div className="sh-modal-footer">
-                <button type="submit" className="sh-submit-pill" disabled={isSending}>
-                  <span>{status || t('chatSend')}</span>
+                <button type="submit" className="sh-submit-pill" disabled={isBusy}>
+                  <span>{statusKey ? t(statusKey) : t('chatSend')}</span>
                   <div className="sh-circle-icon">
-                    {isSending ? (
+                    {statusKey === 'chatSending' ? (
                       <RefreshCw
                         {...iconBase}
                         size={18}

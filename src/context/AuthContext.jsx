@@ -30,6 +30,30 @@ const AuthProvider = ({ children }) => {
     }
   };
 
+  useEffect(() => {
+    const interceptorId = api.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        const status = error.response?.status;
+        const code = error.response?.data?.code;
+        const requestUrl = String(error.config?.url || '');
+        const isLoginRequest = /\/auth\/login(?:[?#]|$)/.test(requestUrl);
+        const isAuthenticationFailure = status === 401 || (status === 403 && code === 'ADMIN_REQUIRED');
+
+        if (isAuthenticationFailure && !isLoginRequest) {
+          clearAuthToken();
+          setToken(null);
+          setValidatedToken(null);
+          setAdmin(null);
+        }
+
+        return Promise.reject(error);
+      },
+    );
+
+    return () => api.interceptors.response.eject(interceptorId);
+  }, []);
+
   const logout = () => {
     clearAuthToken();
     setToken(null);
@@ -51,10 +75,19 @@ const AuthProvider = ({ children }) => {
       })
       .catch((error) => {
         if (!active || error?.code === 'ERR_CANCELED') return;
-        clearAuthToken();
-        setToken(null);
-        setValidatedToken(null);
+
         setAdmin(null);
+        const status = error.response?.status;
+        const code = error.response?.data?.code;
+        if (status === 401 || (status === 403 && code === 'ADMIN_REQUIRED')) {
+          clearAuthToken();
+          setToken(null);
+          setValidatedToken(null);
+          return;
+        }
+
+        // Keep the token through transient API/network failures, but never treat it as authenticated.
+        setValidatedToken(token);
       });
 
     return () => {

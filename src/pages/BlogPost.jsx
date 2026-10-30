@@ -71,13 +71,19 @@ export default function BlogPost() {
 
   useEffect(() => {
     const controller = new AbortController();
+    let active = true;
+
     fetch('https://api.github.com/users/luxjson', { signal: controller.signal })
       .then((response) => response.ok ? response.json() : null)
       .then((data) => {
-        if (data) setUser(data);
+        if (active && data) setUser(data);
       })
       .catch(() => {});
-    return () => controller.abort();
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
   }, []);
 
   const formatDate = (dateStr) =>
@@ -99,6 +105,12 @@ export default function BlogPost() {
       <div className="sohub-root">
         <Header {...sharedHeaderProps} />
         <div className="sh-loading" aria-live="polite">Carregando...</div>
+        <ContactModal
+          isOpen={isChatOpen}
+          onClose={() => setIsChatOpen(false)}
+          t={t}
+          language={language}
+        />
       </div>
     );
   }
@@ -128,6 +140,12 @@ export default function BlogPost() {
           </div>
         </main>
         <Footer t={t} user={user} onInfoOpen={() => setIsInfoOpen(true)} />
+        <ContactModal
+          isOpen={isChatOpen}
+          onClose={() => setIsChatOpen(false)}
+          t={t}
+          language={language}
+        />
         <InfoDrawer isOpen={isInfoOpen} onClose={() => setIsInfoOpen(false)} t={t} user={user} />
       </div>
     );

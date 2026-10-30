@@ -30,6 +30,7 @@ export default function Blog() {
   const navigate = useNavigate();
 
   const [posts, setPosts] = useState([]);
+  const [postsError, setPostsError] = useState(false);
   const [user, setUser] = useState(null);
   const [dataLoading, setDataLoading] = useState(true);
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -38,22 +39,46 @@ export default function Blog() {
   const { isLoading } = useBootLoader(!dataLoading);
 
   useEffect(() => {
-    const fetchAll = async () => {
-      try {
-        const [userRes, postsRes] = await Promise.all([
-          fetch('https://api.github.com/users/luxjson'),
-          api.get('/blog/posts?limit=10&publishedOnly=true'),
-        ]);
+    const controller = new AbortController();
+    let active = true;
 
-        if (userRes.ok) setUser(await userRes.json());
-        setPosts(postsRes.data.posts || []);
+    fetch('https://api.github.com/users/luxjson', { signal: controller.signal })
+      .then((response) => response.ok ? response.json() : null)
+      .then((data) => {
+        if (active && data) setUser(data);
+      })
+      .catch(() => {});
+
+    const fetchPosts = async () => {
+      try {
+        const response = await api.get('/blog/posts?limit=10&publishedOnly=true', {
+          signal: controller.signal,
+        });
+        if (!active) return;
+
+        if (!Array.isArray(response.data?.posts)) {
+          setPosts([]);
+          setPostsError(true);
+          return;
+        }
+
+        setPosts(response.data.posts);
+        setPostsError(false);
       } catch (error) {
-        console.error('Erro ao buscar dados:', error);
+        if (active && error?.code !== 'ERR_CANCELED') {
+          setPosts([]);
+          setPostsError(true);
+        }
       } finally {
-        setDataLoading(false);
+        if (active) setDataLoading(false);
       }
     };
-    fetchAll();
+
+    fetchPosts();
+    return () => {
+      active = false;
+      controller.abort();
+    };
   }, []);
 
   return (
@@ -120,6 +145,11 @@ export default function Blog() {
                     </div>
                   </div>
                 ))
+              ) : postsError ? (
+                <div className="sh-empty-state" role="status">
+                  <Inbox {...iconBase} size={28} />
+                  <p>{t('errorLoadingPosts')}</p>
+                </div>
               ) : posts.length === 0 ? (
                 <div className="sh-empty-state">
                   <Inbox {...iconBase} size={28} />
@@ -136,7 +166,15 @@ export default function Blog() {
                     className="sh-project-card"
                     style={{ cursor: 'pointer' }}
                     onClick={() => navigate(`/blog/${post.slug}`)}
-                    role="article"
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        navigate(`/blog/${post.slug}`);
+                      }
+                    }}
+                    role="link"
+                    tabIndex={0}
+                    aria-label={`Ler publicação: ${post.title}`}
                   >
                     <div className="sh-project-card-inner">
                       <div
