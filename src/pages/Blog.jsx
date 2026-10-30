@@ -164,7 +164,15 @@ export default function Blog() {
                     className="sh-project-card"
                     style={{ cursor: 'pointer' }}
                     onClick={() => navigate(`/blog/${post.slug}`)}
-                    role="article"
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        navigate(`/blog/${post.slug}`);
+                      }
+                    }}
+                    role="link"
+                    tabIndex={0}
+                    aria-label={`Ler publicação: ${post.title}`}
                   >
                     <div className="sh-project-card-inner">
                       <div
