@@ -58,33 +58,38 @@ export default function Luxjson() {
     const controller = new AbortController();
     let active = true;
 
-    const fetchData = async () => {
+    fetch('https://api.github.com/users/luxjson', { signal: controller.signal })
+      .then((response) => response.ok ? response.json() : null)
+      .then((data) => {
+        if (active && data) setUser(data);
+      })
+      .catch(() => {});
+
+    const fetchRepositories = async () => {
       try {
-        const [userRes, reposRes] = await Promise.all([
-          fetch('https://api.github.com/users/luxjson', { signal: controller.signal }),
-          fetch('https://api.github.com/users/luxjson/repos?per_page=100&sort=pushed', { signal: controller.signal }),
-        ]);
-
-        if (!userRes.ok || !reposRes.ok) throw new Error('GitHub API error');
-
-        const [userData, reposData] = await Promise.all([userRes.json(), reposRes.json()]);
+        const response = await fetch(
+          'https://api.github.com/users/luxjson/repos?per_page=100&sort=pushed',
+          { signal: controller.signal },
+        );
+        if (!response.ok) throw new Error('GitHub repositories request failed.');
+        const repositories = await response.json();
         if (!active) return;
 
-        setUser(userData);
-        setProjects(reposData.filter((repo) =>
+        setProjects(Array.isArray(repositories) ? repositories.filter((repo) =>
           GITHUB_TARGETS.some((target) => repo.name.toLowerCase().includes(target)) &&
           !GITHUB_BLACKLIST.some((name) => repo.name.toLowerCase() === name)
-        ));
+        ) : []);
       } catch (error) {
         if (active && error?.name !== 'AbortError') {
-          console.error('Erro ao buscar dados do GitHub:', error);
+          setProjects([]);
+          console.error('Erro ao buscar repositórios do GitHub:', error);
         }
       } finally {
         if (active) setDataLoading(false);
       }
     };
 
-    fetchData();
+    fetchRepositories();
     return () => {
       active = false;
       controller.abort();
