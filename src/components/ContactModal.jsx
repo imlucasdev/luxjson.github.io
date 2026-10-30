@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ArrowRight, RefreshCw } from 'lucide-react';
 import emailjs from '@emailjs/browser';
@@ -22,24 +22,35 @@ const EMAILJS_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || '-7mi-fOFqFgasG8q
 export default function ContactModal({ isOpen, onClose, t }) {
   const form = useRef();
   const [status, setStatus] = useState('');
+  const timeoutRef = useRef(null);
+
+  useEffect(() => () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+  }, []);
 
   const sendEmail = (e) => {
     e.preventDefault();
+    if (status === t('chatSending') || !form.current) return;
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
     setStatus(t('chatSending'));
 
     emailjs
       .sendForm(EMAILJS_SERVICE, EMAILJS_TEMPLATE, form.current, EMAILJS_KEY)
       .then(() => {
         setStatus(t('chatSent'));
-        setTimeout(() => {
+        timeoutRef.current = setTimeout(() => {
           onClose();
           setStatus('');
           form.current?.reset();
+          timeoutRef.current = null;
         }, 2000);
       })
       .catch(() => {
         setStatus(t('chatError'));
-        setTimeout(() => setStatus(''), 3000);
+        timeoutRef.current = setTimeout(() => {
+          setStatus('');
+          timeoutRef.current = null;
+        }, 3000);
       });
   };
 
