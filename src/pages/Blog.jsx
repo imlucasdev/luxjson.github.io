@@ -42,37 +42,39 @@ export default function Blog() {
     const controller = new AbortController();
     let active = true;
 
-    const fetchAll = async () => {
-      const [userResult, postsResult] = await Promise.allSettled([
-        fetch('https://api.github.com/users/luxjson', { signal: controller.signal }).then((response) => {
-          if (!response.ok) throw new Error('GitHub profile request failed.');
-          return response.json();
-        }),
-        api.get('/blog/posts?limit=10&publishedOnly=true', { signal: controller.signal }),
-      ]);
+    fetch('https://api.github.com/users/luxjson', { signal: controller.signal })
+      .then((response) => response.ok ? response.json() : null)
+      .then((data) => {
+        if (active && data) setUser(data);
+      })
+      .catch(() => {});
 
-      if (!active) return;
+    const fetchPosts = async () => {
+      try {
+        const response = await api.get('/blog/posts?limit=10&publishedOnly=true', {
+          signal: controller.signal,
+        });
+        if (!active) return;
 
-      if (userResult.status === 'fulfilled') setUser(userResult.value);
+        if (!Array.isArray(response.data?.posts)) {
+          setPosts([]);
+          setPostsError(true);
+          return;
+        }
 
-      if (postsResult.status === 'fulfilled' && Array.isArray(postsResult.value.data?.posts)) {
-        setPosts(postsResult.value.data.posts);
+        setPosts(response.data.posts);
         setPostsError(false);
-      } else {
-        setPosts([]);
-        setPostsError(true);
+      } catch (error) {
+        if (active && error?.code !== 'ERR_CANCELED') {
+          setPosts([]);
+          setPostsError(true);
+        }
+      } finally {
+        if (active) setDataLoading(false);
       }
-
-      setDataLoading(false);
     };
 
-    fetchAll().catch((error) => {
-      if (active && error?.code !== 'ERR_CANCELED') {
-        setPostsError(true);
-        setDataLoading(false);
-      }
-    });
-
+    fetchPosts();
     return () => {
       active = false;
       controller.abort();
