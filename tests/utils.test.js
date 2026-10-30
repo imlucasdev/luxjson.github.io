@@ -82,7 +82,7 @@ test('admin token stays available in memory when localStorage writes fail', () =
 
 test('stored admin token is refreshed from localStorage when available', () => {
   const originalWindow = globalThis.window;
-  let stored = 'persisted-token';
+  let stored = null;
 
   try {
     globalThis.window = {
@@ -93,6 +93,7 @@ test('stored admin token is refreshed from localStorage when available', () => {
       },
     };
     clearAuthToken();
+    stored = 'persisted-token';
     assert.equal(getStoredToken(), 'persisted-token');
     storeAuthToken('rotated-token');
     assert.equal(getStoredToken(), 'rotated-token');
