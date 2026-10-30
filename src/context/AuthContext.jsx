@@ -35,10 +35,12 @@ const AuthProvider = ({ children }) => {
       (response) => response,
       (error) => {
         const status = error.response?.status;
+        const code = error.response?.data?.code;
         const requestUrl = String(error.config?.url || '');
         const isLoginRequest = /\/auth\/login(?:[?#]|$)/.test(requestUrl);
+        const isAuthenticationFailure = status === 401 || (status === 403 && code === 'ADMIN_REQUIRED');
 
-        if ([401, 403].includes(status) && !isLoginRequest) {
+        if (isAuthenticationFailure && !isLoginRequest) {
           clearAuthToken();
           setToken(null);
           setValidatedToken(null);
@@ -75,7 +77,9 @@ const AuthProvider = ({ children }) => {
         if (!active || error?.code === 'ERR_CANCELED') return;
 
         setAdmin(null);
-        if ([401, 403].includes(error.response?.status)) {
+        const status = error.response?.status;
+        const code = error.response?.data?.code;
+        if (status === 401 || (status === 403 && code === 'ADMIN_REQUIRED')) {
           clearAuthToken();
           setToken(null);
           setValidatedToken(null);
