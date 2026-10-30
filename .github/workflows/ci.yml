@@ -2,7 +2,7 @@ name: Frontend verification
 
 on:
   push:
-    branches: [main, chore/update-instagram-handle-20261028]
+    branches: [main, chore/update-instagram-handle-20261028, audit/site-flow-hardening-20261029]
   pull_request:
   workflow_dispatch:
 
