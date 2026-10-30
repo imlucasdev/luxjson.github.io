@@ -27,6 +27,7 @@ export default function useThemeLang() {
   }, [theme]);
 
   useEffect(() => {
+    document.documentElement.lang = language === 'pt' ? 'pt-BR' : 'en';
     writePreference('lux-language', language);
   }, [language]);
 

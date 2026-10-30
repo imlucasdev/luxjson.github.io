@@ -42,7 +42,7 @@ export default function Header({
           onClick={toggleTheme}
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
-          aria-label="Alternar tema"
+          aria-label={t('themeToggle')}
           >
           <AnimatePresence mode="wait">
             <motion.span
@@ -67,7 +67,7 @@ export default function Header({
           onClick={toggleLanguage}
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
-          aria-label="Alternar idioma"
+          aria-label={t('languageToggle')}
         >
           {language === 'pt' ? (
             <GiBrazilFlag className="sh-lang-flag-img" size={20} />
@@ -83,7 +83,7 @@ export default function Header({
             href="/"
             onClick={handleHomeClick}
             className="sh-logo-nav"
-            aria-label="Ir para o início"
+            aria-label={t('goHome')}
           >
             luxjson
           </a>
@@ -104,7 +104,7 @@ export default function Header({
             <button
               onClick={onChatOpen}
               className="sh-chat-btn"
-              aria-label="Abrir contato"
+              aria-label={t('openContact')}
             >
               <span>{t('headerChat')}</span>
               <div className="sh-circle-icon sh-circle-icon-chat">

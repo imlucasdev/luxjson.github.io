@@ -68,8 +68,8 @@ export default function ProjectModal({ project, onClose, t, language }) {
                   src={`https://opengraph.githubassets.com/1/luxjson/${project.name}`}
                   alt={project.name}
                   onError={(e) => {
-                    e.target.src =
-                      'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="250" viewBox="0 0 400 250"%3E%3Crect width="400" height="250" fill="%231e232c"/%3E%3Ctext x="50%25" y="50%25" font-family="Arial" font-size="18" fill="%238896a8" text-anchor="middle" dy=".3em"%3ENo preview%3C/text%3E%3C/svg%3E';
+                    const fallbackSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="250" viewBox="0 0 400 250"><rect width="400" height="250" fill="#1e232c"/><text x="50%" y="50%" font-family="Arial" font-size="18" fill="#8896a8" text-anchor="middle" dy=".3em">' + t('noPreview') + '</text></svg>';
+                    e.target.src = 'data:image/svg+xml,' + encodeURIComponent(fallbackSvg);
                     e.target.style.objectFit = 'contain';
                   }}
                 />

@@ -58,6 +58,16 @@ test('all supported languages expose the same translation keys', () => {
   assert.deepEqual(Object.keys(translations.pt).sort(), Object.keys(translations.en).sort());
 });
 
+test('accessibility and loading labels are translated in every supported language', () => {
+  const requiredKeys = ['themeToggle', 'languageToggle', 'goHome', 'openContact', 'openInfo', 'close', 'loading', 'avatarAlt', 'noPreview', 'chatEmailPlaceholder', 'repositories', 'followers'];
+  for (const language of ['pt', 'en']) {
+    for (const key of requiredKeys) {
+      assert.equal(typeof translations[language][key], 'string', `${language}.${key} must be translated`);
+      assert.ok(translations[language][key].trim(), `${language}.${key} must not be empty`);
+    }
+  }
+});
+
 test('admin token stays available in memory when localStorage writes fail', () => {
   const originalWindow = globalThis.window;
   const storage = {
