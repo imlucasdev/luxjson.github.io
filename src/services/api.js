@@ -1,40 +1,11 @@
 import axios from 'axios';
 import { resolveApiBaseUrl, shouldAttachAuthToken } from './apiConfig.js';
+import { getStoredToken, storeAuthToken, clearAuthToken } from './authTokenStorage.js';
 
-export const API_BASE_URL = resolveApiBaseUrl(
-  import.meta.env.VITE_API_URL,
-  import.meta.env.PROD,
-);
+const appEnv = import.meta.env || {};
+export const API_BASE_URL = resolveApiBaseUrl(appEnv.VITE_API_URL, appEnv.PROD);
 
-let memoryToken = null;
-
-export function getStoredToken() {
-  try {
-    memoryToken = window.localStorage.getItem('lux-token') || null;
-    return memoryToken;
-  } catch {
-    return memoryToken;
-  }
-}
-
-export function storeAuthToken(token) {
-  memoryToken = typeof token === 'string' && token ? token : null;
-  try {
-    if (memoryToken) window.localStorage.setItem('lux-token', memoryToken);
-    else window.localStorage.removeItem('lux-token');
-  } catch {
-    // The in-memory token remains available for the current page session.
-  }
-}
-
-export function clearAuthToken() {
-  memoryToken = null;
-  try {
-    window.localStorage.removeItem('lux-token');
-  } catch {
-    // In-memory state is already cleared.
-  }
-}
+export { getStoredToken, storeAuthToken, clearAuthToken };
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
