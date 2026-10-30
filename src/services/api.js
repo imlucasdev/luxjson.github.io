@@ -1,36 +1,29 @@
 import axios from 'axios';
+import { resolveApiBaseUrl, shouldAttachAuthToken } from './apiConfig.js';
 
-const configuredBaseUrl = import.meta.env.VITE_API_URL;
-const defaultBaseUrl = import.meta.env.PROD
-  ? 'https://api.luxjson.is-a.dev/api'
-  : 'http://localhost:5000/api';
-
-export const API_BASE_URL = String(configuredBaseUrl || defaultBaseUrl)
-  .trim()
-  .replace(/\/+$/, '');
+export const API_BASE_URL = resolveApiBaseUrl(
+  import.meta.env.VITE_API_URL,
+  import.meta.env.PROD,
+);
 
 let memoryToken = null;
 
 export function getStoredToken() {
   try {
-    const stored = window.localStorage.getItem('lux-token');
-    if (stored) {
-      memoryToken = stored;
-      return stored;
-    }
+    memoryToken = window.localStorage.getItem('lux-token') || null;
+    return memoryToken;
   } catch {
     return memoryToken;
   }
-  return memoryToken;
 }
 
 export function storeAuthToken(token) {
-  memoryToken = typeof token === 'string' ? token : null;
+  memoryToken = typeof token === 'string' && token ? token : null;
   try {
     if (memoryToken) window.localStorage.setItem('lux-token', memoryToken);
     else window.localStorage.removeItem('lux-token');
   } catch {
-    memoryToken = typeof token === 'string' ? token : null;
+    // The in-memory token remains available for the current page session.
   }
 }
 
@@ -39,7 +32,7 @@ export function clearAuthToken() {
   try {
     window.localStorage.removeItem('lux-token');
   } catch {
-    memoryToken = null;
+    // In-memory state is already cleared.
   }
 }
 
@@ -55,10 +48,20 @@ export const api = axios.create({
 api.interceptors.request.use((config) => {
   const token = getStoredToken();
   config.headers = config.headers || {};
-  if (token && !String(config.url || '').endsWith('/auth/login')) {
-    config.headers.Authorization = `Bearer ${token}`;
-  } else if (config.headers.Authorization) {
+
+  if (typeof config.headers.delete === 'function') {
+    config.headers.delete('Authorization');
+  } else {
     delete config.headers.Authorization;
   }
+
+  if (token && shouldAttachAuthToken(config.url, config.baseURL || API_BASE_URL)) {
+    if (typeof config.headers.set === 'function') {
+      config.headers.set('Authorization', `Bearer ${token}`);
+    } else {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  }
+
   return config;
 });
