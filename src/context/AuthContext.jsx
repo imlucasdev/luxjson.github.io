@@ -30,6 +30,28 @@ const AuthProvider = ({ children }) => {
     }
   };
 
+  useEffect(() => {
+    const interceptorId = api.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        const status = error.response?.status;
+        const requestUrl = String(error.config?.url || '');
+        const isLoginRequest = /\\/auth\\/login(?:[?#]|$)/.test(requestUrl);
+
+        if ([401, 403].includes(status) && !isLoginRequest) {
+          clearAuthToken();
+          setToken(null);
+          setValidatedToken(null);
+          setAdmin(null);
+        }
+
+        return Promise.reject(error);
+      },
+    );
+
+    return () => api.interceptors.response.eject(interceptorId);
+  }, []);
+
   const logout = () => {
     clearAuthToken();
     setToken(null);
@@ -51,10 +73,17 @@ const AuthProvider = ({ children }) => {
       })
       .catch((error) => {
         if (!active || error?.code === 'ERR_CANCELED') return;
-        clearAuthToken();
-        setToken(null);
-        setValidatedToken(null);
+
         setAdmin(null);
+        if ([401, 403].includes(error.response?.status)) {
+          clearAuthToken();
+          setToken(null);
+          setValidatedToken(null);
+          return;
+        }
+
+        // Keep the token through transient API/network failures, but never treat it as authenticated.
+        setValidatedToken(token);
       });
 
     return () => {
