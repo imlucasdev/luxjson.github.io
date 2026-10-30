@@ -85,7 +85,7 @@ export default function ContactModal({ isOpen, onClose, t }) {
           >
             <div className="sh-modal-header">
               <h2>{t('chatTitle')}</h2>
-              <button onClick={onClose} className="sh-close-btn" aria-label="Fechar">
+              <button onClick={onClose} className="sh-close-btn" aria-label={t('close')}>
                 <X {...iconBase} size={22} />
               </button>
             </div>
@@ -108,7 +108,7 @@ export default function ContactModal({ isOpen, onClose, t }) {
                   type="email"
                   id="cm-email"
                   name="user_email"
-                  placeholder="your@email.com"
+                  placeholder={t('chatEmailPlaceholder')}
                   required
                   autoComplete="email"
                 />

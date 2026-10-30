@@ -104,7 +104,7 @@ export default function BlogPost() {
     return (
       <div className="sohub-root">
         <Header {...sharedHeaderProps} />
-        <div className="sh-loading" aria-live="polite">Carregando...</div>
+        <div className="sh-loading" aria-live="polite">{t('loading')}</div>
         <ContactModal
           isOpen={isChatOpen}
           onClose={() => setIsChatOpen(false)}

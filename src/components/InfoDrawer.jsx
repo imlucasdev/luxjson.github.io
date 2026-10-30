@@ -39,7 +39,7 @@ export default function InfoDrawer({ isOpen, onClose, t, user }) {
           >
             <div className="sh-info-drawer-header">
               <h2>{t('infoTitle')}</h2>
-              <button onClick={onClose} className="sh-close-btn" aria-label="Fechar">
+              <button onClick={onClose} className="sh-close-btn" aria-label={t('close')}>
                 <X {...iconBase} size={22} />
               </button>
             </div>
@@ -48,7 +48,7 @@ export default function InfoDrawer({ isOpen, onClose, t, user }) {
               {user?.avatar_url && (
                 <img
                   src={user.avatar_url}
-                  alt={`Avatar de ${user.name || user.login}`}
+                  alt={t('avatarAlt').replace('{name}', user.name || user.login)}
                   style={{ width: 80, borderRadius: '50%', marginBottom: 10 }}
                 />
               )}
