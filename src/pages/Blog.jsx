@@ -30,6 +30,7 @@ export default function Blog() {
   const navigate = useNavigate();
 
   const [posts, setPosts] = useState([]);
+  const [postsError, setPostsError] = useState(false);
   const [user, setUser] = useState(null);
   const [dataLoading, setDataLoading] = useState(true);
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -38,22 +39,44 @@ export default function Blog() {
   const { isLoading } = useBootLoader(!dataLoading);
 
   useEffect(() => {
-    const fetchAll = async () => {
-      try {
-        const [userRes, postsRes] = await Promise.all([
-          fetch('https://api.github.com/users/luxjson'),
-          api.get('/blog/posts?limit=10&publishedOnly=true'),
-        ]);
+    const controller = new AbortController();
+    let active = true;
 
-        if (userRes.ok) setUser(await userRes.json());
-        setPosts(postsRes.data.posts || []);
-      } catch (error) {
-        console.error('Erro ao buscar dados:', error);
-      } finally {
+    const fetchAll = async () => {
+      const [userResult, postsResult] = await Promise.allSettled([
+        fetch('https://api.github.com/users/luxjson', { signal: controller.signal }).then((response) => {
+          if (!response.ok) throw new Error('GitHub profile request failed.');
+          return response.json();
+        }),
+        api.get('/blog/posts?limit=10&publishedOnly=true', { signal: controller.signal }),
+      ]);
+
+      if (!active) return;
+
+      if (userResult.status === 'fulfilled') setUser(userResult.value);
+
+      if (postsResult.status === 'fulfilled' && Array.isArray(postsResult.value.data?.posts)) {
+        setPosts(postsResult.value.data.posts);
+        setPostsError(false);
+      } else {
+        setPosts([]);
+        setPostsError(true);
+      }
+
+      setDataLoading(false);
+    };
+
+    fetchAll().catch((error) => {
+      if (active && error?.code !== 'ERR_CANCELED') {
+        setPostsError(true);
         setDataLoading(false);
       }
+    });
+
+    return () => {
+      active = false;
+      controller.abort();
     };
-    fetchAll();
   }, []);
 
   return (
@@ -120,6 +143,11 @@ export default function Blog() {
                     </div>
                   </div>
                 ))
+              ) : postsError ? (
+                <div className="sh-empty-state" role="status">
+                  <Inbox {...iconBase} size={28} />
+                  <p>{t('errorLoadingPosts')}</p>
+                </div>
               ) : posts.length === 0 ? (
                 <div className="sh-empty-state">
                   <Inbox {...iconBase} size={28} />
